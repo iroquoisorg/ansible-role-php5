@@ -1,0 +1,49 @@
+---
+- name: Add PHP 5.6 repo
+  apt_repository: >
+    repo=ppa:ondrej/php
+    update_cache=true
+  when: ansible_os_family == 'Debian'
+
+- name: Install PHP
+  apt: name=php5.6 state=latest
+
+- name: Install PHP packages
+  apt: name={{ item }} state=present
+  with_items: "{{ php_extensions }}"
+
+- name: Install pecl extensions
+  shell:  "yes \"\" | pecl install {{ item }}"
+  register: pecl_result
+  changed_when: "'already installed' not in pecl_result.stdout"
+  failed_when: "not (('already installed' in pecl_result.stdout) or ('install ok:' in pecl_result.stdout))"
+  with_items: "{{ pecl_extensions }}"
+
+- name: Create php config folder if missing
+  file:
+    path: /etc/php/5.6/conf.d/
+    state: directory
+
+- name: Create php cgi config folder if missing
+  file:
+    path: /etc/php/5.6/cgi/conf.d/
+    state: directory
+
+- name: Create php cgi config folder if missing
+  file:
+    path: /etc/php/5.6/apache2/conf.d/
+    state: directory
+    
+- name: Configure PHP
+  template: src=php_config.ini.j2 dest=/etc/php/5.6/conf.d/php_config.ini
+
+- name: Configure PHP CGI
+  template: src=php_config.ini.j2 dest=/etc/php/5.6/cgi/conf.d/php_config.ini
+
+- name: Configure PHP CLI
+  template: src=php_config.ini.j2 dest=/etc/php/5.6/cli/conf.d/php_config.ini
+  
+- name: Configure PHP Apache2
+  template: src=php_config.ini.j2 dest=/etc/php/5.6/apache2/conf.d/php_config.ini
+
+
